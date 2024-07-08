@@ -1,0 +1,14 @@
+kind: Project
+apiVersion: project.openshift.io/v1
+metadata:
+  name: finetune-llama
+  labels:
+    kubernetes.io/metadata.name: finetune-llama
+    modelmesh-enabled: 'true'
+    opendatahub.io/dashboard: 'true'
+  annotations:
+    openshift.io/description: ''
+    openshift.io/display-name: finetune-llama
+spec:
+  finalizers:
+    - kubernetes
