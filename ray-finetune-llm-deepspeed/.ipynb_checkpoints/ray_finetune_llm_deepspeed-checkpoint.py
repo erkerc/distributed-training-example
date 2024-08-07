@@ -688,7 +688,7 @@ def main():
         
     # Set up your own file system
     fs = pyarrow.fs.S3FileSystem(
-        endpoint_override="https://minio-api-minio.apps.cluster-m5t2c.m5t2c.sandbox3238.opentlc.com",
+        endpoint_override="http://minio-default-service.minio.svc.cluster.local:9000",
         access_key="minio",
         secret_key="minio123"
     )
