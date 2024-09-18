@@ -83,7 +83,30 @@ def download_model(
     print(f"RUN({cmd})")
     subprocess.run(cmd)
     print("done")
-
+    
 
 def get_mirror_link(model_id: str) -> str:
     return f"s3://llama-2-weights/models--{model_id.replace('/', '--')}"
+
+def download_local_model(
+    s3_endpoint_url: str,
+    s3_bucket_name: str,
+    download_path: str,
+    prefix:str = "",
+):
+    import boto3
+    
+    s3_access_key = os.getenv('AWS_ACCESS_KEY_ID')
+    s3_secret_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+
+    s3 = boto3.resource(
+        's3', endpoint_url=s3_endpoint_url,
+        aws_access_key_id=s3_access_key, aws_secret_access_key=s3_secret_key
+    )
+    bucket = s3.Bucket(s3_bucket_name)
+    
+    for s3_object in bucket.objects.filter(Prefix=prefix):
+        key = s3_object.key
+        print(f"Downloading {key}")
+        local_file_path = os.path.join(download_path, os.path.basename(key))
+        bucket.download_file(key, local_file_path)

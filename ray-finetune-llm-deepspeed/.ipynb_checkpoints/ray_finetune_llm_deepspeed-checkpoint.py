@@ -42,6 +42,7 @@ from utils import (
     get_checkpoint_and_refs_dir,
     get_mirror_link,
     download_model,
+    download_local_model,
     get_download_path,
 )
 
@@ -235,16 +236,26 @@ def training_function(kwargs: dict):
     special_tokens = kwargs.get("special_tokens", [])
     model_id = config["model_name"]
 
-    # We need to download the model weights on this machine if they don't exit.
+    # We need to download the model weights on this machine if they don't exist.
     # We need to acquire a lock to ensure that only one process downloads the model
     bucket_uri = get_mirror_link(model_id)
     download_path = get_download_path(model_id)
     base_path = Path(download_path).parent
     base_path.mkdir(parents=True, exist_ok=True)
-    lock_file = str(base_path / f'{model_id.replace("/",  "--")}.lock')
-    with FileLock(lock_file):
-        download_model(
-            model_id=model_id, bucket_uri=bucket_uri, s3_sync_args=["--no-sign-request"]
+    if not args.disconnected:
+        lock_file = str(base_path / f'{model_id.replace("/",  "--")}.lock')
+        with FileLock(lock_file):
+            download_model(
+                model_id=model_id, bucket_uri=bucket_uri, s3_sync_args=["--no-sign-request"]
+            )
+    else:
+        Path(download_path).mkdir(parents=True, exist_ok=True)
+        model_filename = Path(download_path).name+"/"
+        download_local_model(
+            s3_endpoint_url=os.environ.get('AWS_S3_ENDPOINT'),
+            s3_bucket_name="llms",
+            download_path=download_path,
+            prefix="models--meta-llama--Llama-2-7b-chat-hf/meta-llama/Llama-2-7b-chat-hf/",
         )
 
     # Sample hyper-parameters for learning rate, batch size, seed and a few other HPs
@@ -608,6 +619,9 @@ def parse_args():
 
     parser.add_argument("--eval-batch-size-per-device", type=int, default=64,
                         help="Batch size to use per device (For evaluation).")
+    
+    parser.add_argument("--disconnected", type=bool, default=False,
+                        help="Running disconnected, pulling models from a local repository.")
 
     parser.add_argument("--grad-accum", type=int, default=1,
                         help="Gradient accumulation steps.")
@@ -688,9 +702,9 @@ def main():
         
     # Set up your own file system
     fs = pyarrow.fs.S3FileSystem(
-        endpoint_override="http://minio-default-service.minio.svc.cluster.local:9000",
-        access_key="minio",
-        secret_key="minio123"
+        endpoint_override=os.environ.get('AWS_S3_ENDPOINT'),
+        access_key=os.environ.get('AWS_ACCESS_KEY_ID'),
+        secret_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
     )
 
     trainer = TorchTrainer(
