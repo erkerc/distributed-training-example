@@ -253,7 +253,7 @@ def training_function(kwargs: dict):
         model_filename = Path(download_path).name+"/"
         download_local_model(
             s3_endpoint_url=os.environ.get('AWS_S3_ENDPOINT'),
-            s3_bucket_name="llms",
+            s3_bucket_name=os.environ.get('AWS_S3_BUCKET'),
             download_path=download_path,
             prefix="models--meta-llama--Llama-2-7b-chat-hf/meta-llama/Llama-2-7b-chat-hf/",
         )
@@ -706,6 +706,7 @@ def main():
         access_key=os.environ.get('AWS_ACCESS_KEY_ID'),
         secret_key=os.environ.get('AWS_SECRET_ACCESS_KEY')
     )
+    
 
     trainer = TorchTrainer(
         training_function,
